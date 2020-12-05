@@ -1,4 +1,5 @@
 use aoc_runner_derive::*;
+use std::cmp::Ordering;
 
 #[aoc_generator(day1)]
 pub fn day1_gen(input: &str) -> Vec<u32> {
@@ -273,6 +274,75 @@ fn d4p2(passports: &Vec<Passport>) -> usize {
     let mut n = 0usize;
     passports.iter().for_each(|i| if i.is_valid(false) { n += 1 });
     n
+}
+
+// day 5
+#[derive(Copy, Clone)]
+struct BoardingPass {
+    row: u8,
+    column: u8,
+    seat_id: u32,
+}
+
+impl From<&str> for BoardingPass {
+    fn from(input: &str) -> Self {
+        let row_vec = (0..=127u8).collect::<Vec<u8>>();
+        let column_vec = (0..=7).collect::<Vec<u8>>();
+
+        let mut row = row_vec.as_slice();
+        let mut column = column_vec.as_slice();
+
+        for ch in input.as_bytes() {
+            match *ch {
+                b'F' => row = &row[..row.len() / 2],
+                b'B' => row = &row[row.len() / 2..],
+                b'L' => column = &column[..column.len() / 2],
+                b'R' => column = &column[column.len() / 2..],
+                _ => panic!("your code sucks"),
+            }
+        }
+
+        Self { row: row[0], column: column[column.len() - 1], seat_id: row[0] as u32 * 8 + column[column.len() - 1] as u32 }
+    }
+}
+
+#[aoc_generator(day5)]
+fn day5_gen(input: &str) -> Vec<BoardingPass> {
+    input.lines().map(|line| BoardingPass::from(line)).collect()
+}
+
+#[aoc(day5, part1)]
+fn d5p1(boarding_passes: &Vec<BoardingPass>) -> u32 {
+    let mut max = 0u32;
+    for pass in boarding_passes {
+        if pass.seat_id > max { max = pass.seat_id }
+    }
+
+    max
+}
+
+#[aoc(day5, part2)]
+fn d5p2(boarding_passes: &Vec<BoardingPass>) -> u32 {
+    let mut locs = boarding_passes.iter().map(|n| (n.row, n.column)).collect::<Vec<_>>();
+    locs.sort();
+
+    for i in 0..locs.len() - 1 {
+        let here = locs[i];
+        let next = locs[i + 1];
+
+        if next.0 - here.0 == 1 {
+            if next.1 == 2 {
+                return next.0 as u32 * 8 + next.1 as u32;
+            }
+        }
+
+        if next.1 - here.1 == 2 {
+            return next.0 as u32 * 8 + here.1 as u32 + 1;
+        }
+
+    }
+
+    0
 }
 
 aoc_lib!{ year = 2020 }
