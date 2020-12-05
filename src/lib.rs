@@ -134,22 +134,145 @@ fn d3p1(map: &Map) -> usize {
 #[aoc(day3, part2)]
 fn d3p2(map: &Map) -> usize {
     let results = &mut [0, 0, 0, 0, 0];
-    let mut on = 0usize;
+    let mut current = 0usize;
 
     for slope in &[(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)] {
         let mut x = 0usize;
         for y in (0..map.lines).step_by(slope.1) {
             if map.tree_at(x, y) {
-                results[on] += 1;
+                results[current] += 1;
             }
             x += slope.0;
         }
-        on += 1;
+        current += 1;
     }
     let mut n = 1usize;
     results.iter().for_each(|k| n *= k);
     n
 }
 
+// day 4
+#[derive(Clone, Debug)]
+pub struct Passport {
+    valid: u8,
+    byr: Option<String>,
+    iyr: Option<String>,
+    eyr: Option<String>,
+    hgt: Option<String>,
+    hcl: Option<String>,
+    ecl: Option<String>,
+    pid: Option<String>,
+}
+
+impl Passport {
+    fn is_valid(&self, is_part_one: bool) -> bool {
+        // don't care about cid as cid is *always* valid
+        if !(self.byr.is_some() &&
+            self.iyr.is_some() &&
+            self.eyr.is_some() &&
+            self.hgt.is_some() &&
+            self.hcl.is_some() &&
+            self.ecl.is_some() &&
+            self.pid.is_some()) {
+            return false
+        }
+
+        if is_part_one { return true }
+
+        match self.byr.as_ref().unwrap().parse::<u32>() {
+            Ok(y) => if !(1920..=2002).contains(&y) { return false }
+            Err(_) => return false
+        }
+
+        match self.iyr.as_ref().unwrap().parse() {
+            Ok(y) => if !(2010..=2020).contains(&y) { return false },
+            Err(_) => return false,
+        }
+
+        match self.eyr.as_ref().unwrap().parse() {
+            Ok(y) => if !(2020..=2030).contains(&y) { return false },
+            Err(_) => return false,
+        }
+
+        let min;
+        let max;
+
+        if self.hgt.as_ref().unwrap().ends_with("cm") {
+            min = 150;
+            max = 193;
+        } else if self.hgt.as_ref().unwrap().ends_with("in") {
+            min = 59;
+            max = 76;
+        } else {
+            return false
+        }
+
+        if !(min..=max).contains(&match self.hgt.as_ref().unwrap().as_str()
+            [..self.hgt.as_ref().unwrap().len() - 2].parse::<i32>() {
+            Ok(n) => n,
+            Err(_) => return false,
+        }) { return false }
+
+        if !self.hcl.as_ref().unwrap().starts_with('#')
+            || u32::from_str_radix(&self.hcl.as_ref().unwrap()[1..], 16).is_err() {
+            return false
+        };
+
+        if !&["amb", "blu", "brn", "gry", "grn", "hzl", "oth"].contains(&self.ecl.as_ref().unwrap().as_str()) {
+            return false
+        }
+
+        self.pid.as_ref().unwrap().len() == 9 && self.pid.as_ref().unwrap().parse::<usize>().is_ok()
+
+    }
+}
+
+impl std::default::Default for Passport {
+    fn default() -> Self {
+        Self { valid: 0, byr: None, iyr: None, eyr: None, hgt: None, hcl: None, ecl: None, pid: None }
+    }
+}
+
+#[aoc_generator(day4)]
+pub fn day4_gen(input: &str) -> Vec<Passport> {
+    let mut passports = Vec::new();
+    let mut passport: Passport = Default::default();
+    for line in input.lines() {
+        if line == "" {
+            passports.push(passport);
+            passport = Default::default();
+        }
+        for word in line.split_whitespace() {
+            let mut key_value = word.split(':');
+            let key = key_value.next().unwrap();
+            let value = key_value.next().unwrap().to_string();
+            match key {
+                "byr" => passport.byr = Some(value),
+                "iyr" => passport.iyr = Some(value),
+                "eyr" => passport.eyr = Some(value),
+                "hgt" => passport.hgt = Some(value),
+                "hcl" => passport.hcl = Some(value),
+                "ecl" => passport.ecl = Some(value),
+                "pid" => passport.pid = Some(value),
+                _ => {}
+            }
+        }
+    }
+    passports
+}
+
+#[aoc(day4, part1)]
+fn d4p1(passports: &Vec<Passport>) -> usize {
+    let mut n = 0usize;
+    passports.iter().for_each(|i| if i.is_valid(true) { n += 1 });
+    n
+}
+
+#[aoc(day4, part2)]
+fn d4p2(passports: &Vec<Passport>) -> usize {
+    let mut n = 0usize;
+    passports.iter().for_each(|i| if i.is_valid(false) { n += 1 });
+    n
+}
 
 aoc_lib!{ year = 2020 }
